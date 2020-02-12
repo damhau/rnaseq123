@@ -1,5 +1,5 @@
 resources:
-- kustomize/*.yml
+- kustomize/deployment.yml
 
 configMapGenerator:
 - files:
