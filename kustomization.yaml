@@ -1,0 +1,9 @@
+resources:
+- kustomize/*.yml
+
+configMapGenerator:
+- files:
+  - kustomize/config_files/cluster-client.conf
+  name: cluster-config-cluster-client-conf
+  - kustomize/config_files/application-client.conf
+  name: cluster-config-application-client-conf

@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rnaseq123
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+        app: rnaseq123
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: rnaseq123
+        role: worker
+        akka_cluster: enabled
+    spec:
+      volumes:
+      - name: nfs-palaamon-test-volume
+        persistentVolumeClaim:
+          claimName: nfs-palaamon-test
+      - name: cluster-config-cluster-test-conf
+        configMap:
+          name: cluster-config-cluster-test-conf
+      - name: cluster-config-application-conf
+        configMap:
+          name: cluster-config-application-conf
+      containers:
+        - name: rnaseq123
+          image: rnaseq123
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: akkaremote
+              containerPort: 2607
+              protocol: TCP
+          env:
+            - name: CLUSTER_MGMT_FQDN
+              value: cluster-backend
+            - name: CLUSTER_MGMT_PORT
+              value: '19999'
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          volumeMounts:
+          - name: nfs-palaamon-test-volume
+            mountPath: "/palaamon"
+          - name: cluster-config-cluster-client-conf
+            mountPath: /opt/docker/config/cluster-client.conf
+            subPath: cluster-client.conf
+          - name: cluster-config-application-client-conf
+            mountPath: /opt/docker/config/application-client.conf
+            subPath: application-client.conf
+          imagePullPolicy: IfNotPresent
+      imagePullSecrets:
+        - name: regcred
+

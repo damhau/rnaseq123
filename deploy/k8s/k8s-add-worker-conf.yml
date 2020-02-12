@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rnaseq123
+  namespace: palaamon-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+        app: rnaseq123
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: rnaseq123
+        role: worker
+        version: 1.1.2
+    spec:
+      securityContext:
+        runAsUser: 987654
+        fsGroup: 987654
+      volumes:
+        - name: nfs-palaamon-test-volume
+          persistentVolumeClaim:
+            claimName: nfs-palaamon-test
+      containers:
+        - name: rnaseq123
+          image: docker.k8stest.llaama.com/palaamon/rnaseq123:1.1.2
+          ports:
+            - name: akkaremote
+              containerPort: 2607
+              protocol: TCP
+          env:
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: K8S_SELECTOR
+              value: actor_system_name=pal-test-cluster-engine
+            - name: CONF
+              value: cluster-client.conf
+            - name: CLUSTER_MGMT_FQDN
+              value: cluster-backend.palaamon-test
+            - name: CLUSTER_MGMT_PORT
+              value: '19999'
+            - name: CLUSTER_NAME
+              value: "pal-test-cluster-engine"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          resources: {}
+          volumeMounts:
+            - name: nfs-palaamon-test-volume
+              mountPath: "/palaamon"
+          terminationMessagePath: "/dev/termination-log"
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      serviceAccountName: pal-test-cluster
+      imagePullSecrets:
+        - name: regcred
+      schedulerName: default-scheduler
